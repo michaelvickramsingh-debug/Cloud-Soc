@@ -1,0 +1,167 @@
+[
+  {
+    "message": "Trail bucket access logging is not enabled",
+    "finding_info": {
+      "uid": "prowler-aws-cloudtrail_s3_dataevents_read_enabled-123456789-us-east-1",
+      "title": "Ensure S3 bucket access logging is enabled on the CloudTrail S3 bucket",
+      "desc": "S3 Bucket Access Logging generates a log that contains access records for each request made to your S3 bucket."
+    },
+    "severity_id": 3,
+    "severity": "Medium",
+    "status": "New",
+    "status_code": "FAIL",
+    "status_detail": "Trail bucket does not have access logging enabled",
+    "resources": [
+      {
+        "uid": "arn:aws:cloudtrail:us-east-1:123456789:trail/main-trail",
+        "name": "main-trail",
+        "type": "AwsCloudTrailTrail",
+        "cloud": {
+          "provider": "aws",
+          "region": "us-east-1",
+          "account": {"uid": "123456789"}
+        }
+      }
+    ],
+    "remediation": {
+      "desc": "Enable S3 bucket access logging on the CloudTrail S3 bucket",
+      "references": ["https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-server-access-logging.html"]
+    },
+    "metadata": {
+      "event_code": "cloudtrail_s3_dataevents_read_enabled"
+    },
+    "time": "2026-07-16T10:00:00Z"
+  },
+  {
+    "message": "GuardDuty is not enabled",
+    "finding_info": {
+      "uid": "prowler-aws-guardduty_is_enabled-123456789-us-east-1",
+      "title": "Ensure GuardDuty is enabled and configured",
+      "desc": "Amazon GuardDuty is a threat detection service that continuously monitors for malicious activity."
+    },
+    "severity_id": 4,
+    "severity": "High",
+    "status": "New",
+    "status_code": "FAIL",
+    "status_detail": "GuardDuty detector is not enabled in this region",
+    "resources": [
+      {
+        "uid": "arn:aws:guardduty:us-east-1:123456789:detector",
+        "name": "guardduty-detector",
+        "type": "AwsGuardDutyDetector",
+        "cloud": {
+          "provider": "aws",
+          "region": "us-east-1",
+          "account": {"uid": "123456789"}
+        }
+      }
+    ],
+    "remediation": {
+      "desc": "Enable GuardDuty in all regions",
+      "references": ["https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_settingup.html"]
+    },
+    "metadata": {
+      "event_code": "guardduty_is_enabled"
+    },
+    "time": "2026-07-16T10:01:00Z"
+  },
+  {
+    "message": "Root account MFA is not enabled",
+    "finding_info": {
+      "uid": "prowler-aws-iam_root_mfa_enabled-123456789-us-east-1",
+      "title": "Ensure MFA is enabled for the root account",
+      "desc": "The root account is the most privileged user in an AWS account. MFA adds an extra layer of protection."
+    },
+    "severity_id": 5,
+    "severity": "Critical",
+    "status": "New",
+    "status_code": "FAIL",
+    "status_detail": "MFA is not enabled for the root account",
+    "resources": [
+      {
+        "uid": "arn:aws:iam::123456789:root",
+        "name": "root",
+        "type": "AwsIamUser",
+        "cloud": {
+          "provider": "aws",
+          "region": "us-east-1",
+          "account": {"uid": "123456789"}
+        }
+      }
+    ],
+    "remediation": {
+      "desc": "Enable MFA for the AWS root account immediately",
+      "references": ["https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html"]
+    },
+    "metadata": {
+      "event_code": "iam_root_mfa_enabled"
+    },
+    "time": "2026-07-16T10:02:00Z"
+  },
+  {
+    "message": "CloudTrail is not enabled in all regions",
+    "finding_info": {
+      "uid": "prowler-aws-cloudtrail_multi_region_enabled-123456789-us-east-1",
+      "title": "Ensure CloudTrail is enabled in all regions",
+      "desc": "CloudTrail records AWS API calls for your account. Enabling in all regions ensures complete audit trail."
+    },
+    "severity_id": 4,
+    "severity": "High",
+    "status": "New",
+    "status_code": "FAIL",
+    "status_detail": "CloudTrail is not enabled across all regions",
+    "resources": [
+      {
+        "uid": "arn:aws:cloudtrail:us-east-1:123456789:trail/partial-trail",
+        "name": "partial-trail",
+        "type": "AwsCloudTrailTrail",
+        "cloud": {
+          "provider": "aws",
+          "region": "us-east-1",
+          "account": {"uid": "123456789"}
+        }
+      }
+    ],
+    "remediation": {
+      "desc": "Enable CloudTrail across all AWS regions",
+      "references": ["https://docs.aws.amazon.com/awscloudtrail/latest/userguide/receive-cloudtrail-log-files-from-multiple-regions.html"]
+    },
+    "metadata": {
+      "event_code": "cloudtrail_multi_region_enabled"
+    },
+    "time": "2026-07-16T10:03:00Z"
+  },
+  {
+    "message": "S3 bucket has public access enabled",
+    "finding_info": {
+      "uid": "prowler-aws-s3_bucket_public_access-123456789-us-east-1",
+      "title": "Ensure S3 buckets do not allow public access",
+      "desc": "S3 buckets with public access can expose sensitive data to the internet."
+    },
+    "severity_id": 4,
+    "severity": "High",
+    "status": "New",
+    "status_code": "FAIL",
+    "status_detail": "S3 bucket allows public read access",
+    "resources": [
+      {
+        "uid": "arn:aws:s3:::my-sensitive-bucket",
+        "name": "my-sensitive-bucket",
+        "type": "AwsS3Bucket",
+        "cloud": {
+          "provider": "aws",
+          "region": "us-east-1",
+          "account": {"uid": "123456789"}
+        }
+      }
+    ],
+    "remediation": {
+      "desc": "Block public access on all S3 buckets",
+      "references": ["https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"]
+    },
+    "metadata": {
+      "event_code": "s3_bucket_public_access"
+    },
+    "time": "2026-07-16T10:04:00Z"
+  }
+]
