@@ -228,3 +228,25 @@ def _build_description(log: Log) -> str:
         f"Region: {log.region} | "
         f"Source IP: {log.source_ip}"
     )
+
+
+def detect_threat_from_log(log_dict: dict) -> tuple:
+    """
+    Detect threats from a CloudTrail log dictionary
+    Returns: (severity, reasons_list)
+    """
+    severity_levels = {'Critical': 3, 'High': 2, 'Medium': 1, 'Low': 0}
+    max_severity = None
+    reasons = []
+
+    action = log_dict.get('event', '').lower()
+
+    for rule in ALL_RULES:
+        if rule['keyword'] in action:
+            reasons.append(rule['title'])
+
+            rule_severity = rule['severity']
+            if max_severity is None or severity_levels[rule_severity] > severity_levels[max_severity]:
+                max_severity = rule_severity
+
+    return max_severity, reasons

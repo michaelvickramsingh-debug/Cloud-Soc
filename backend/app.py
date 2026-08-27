@@ -16,15 +16,22 @@ What happens on startup:
 
 from flask import Flask
 from flask_cors import CORS
+from flask_socketio import SocketIO
 from config           import Config
 from database.database import init_db
 from routes.api        import api
+from routes.live_logs  import live_logs_bp, init_socketio
 
 app = Flask(__name__)
 CORS(app)  # Allow requests from React frontend on localhost:3000
 
+# Initialize WebSocket support for real-time log streaming
+socketio = SocketIO(app, cors_allowed_origins="*")
+init_socketio(socketio)
+
 # Register all routes under /api
 app.register_blueprint(api, url_prefix="/api")
+app.register_blueprint(live_logs_bp, url_prefix="/api")
 
 if __name__ == "__main__":
     init_db()
@@ -33,6 +40,7 @@ if __name__ == "__main__":
     print("  GET  /api/stats")
     print("  GET  /api/logs")
     print("  GET  /api/logs/timeline/<1-5>")
+    print("  POST /api/logs/ingest (Lambda)")
     print("  GET  /api/alerts")
     print("  GET  /api/alerts/summary")
     print("  PUT  /api/alerts/<id>/resolve")
@@ -43,5 +51,7 @@ if __name__ == "__main__":
     print("  POST /api/reset")
     print("  POST /api/prowler/ingest")
     print("  GET  /api/prowler/summary")
+    print("─" * 55)
+    print("  WebSocket: ws://localhost:5001/logs")
     print("─" * 55 + "\n")
-    app.run(debug=Config.DEBUG, port=Config.PORT)
+    socketio.run(app, debug=Config.DEBUG, port=Config.PORT, host="0.0.0.0")
