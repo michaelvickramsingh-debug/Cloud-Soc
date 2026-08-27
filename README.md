@@ -66,21 +66,37 @@ cloudguard/
 
 ## 🚀 HOW TO RUN
 
-### Step 1 — Backend (Member 1)
+### 🎯 Quick Start (Recommended) — One Click!
+```bash
+python startup.py
+```
+This launches everything automatically:
+- ✅ Starts backend (Flask) on http://127.0.0.1:5001
+- ✅ Starts frontend (React) on http://127.0.0.1:3000
+- ✅ Opens dashboard in your browser
+- ✅ Shows service status
+
+**See [QUICKSTART.md](QUICKSTART.md) for full details & troubleshooting**
+
+---
+
+### 📋 Manual Setup (for development)
+
+#### Step 1 — Backend
 ```bash
 cd backend
 pip install -r requirements.txt
 python app.py
 ```
-Backend runs at: **http://localhost:5000**
+Backend API: **http://127.0.0.1:5001/api**
 
-### Step 2 — Frontend (Member 2)
+#### Step 2 — Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Frontend runs at: **http://localhost:3000**
+Frontend: **http://127.0.0.1:3000**
 
 ---
 
