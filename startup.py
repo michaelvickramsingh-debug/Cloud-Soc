@@ -155,11 +155,12 @@ def open_dashboard():
 
 def print_status():
     """Print service status"""
-    print(f"{Colors.BOLD}{Colors.CYAN}
+    status_box = f"""{Colors.BOLD}{Colors.CYAN}
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                       ✅ CLOUDGUARD IS RUNNING                            ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-{Colors.ENDC}")
+{Colors.ENDC}"""
+    print(status_box)
 
     print(f"{Colors.GREEN}📊 Dashboard:{Colors.ENDC}")
     print(f"   {Colors.BOLD}http://127.0.0.1:{FRONTEND_PORT}{Colors.ENDC}")
@@ -179,11 +180,12 @@ def print_status():
     print(f"   View backend logs:  tail -f /tmp/cloudguard_backend.log")
     print(f"   View frontend logs: tail -f /tmp/cloudguard_frontend.log")
 
-    print(f"\n{Colors.BOLD}{Colors.CYAN}
+    shutdown_box = f"""{Colors.BOLD}{Colors.CYAN}
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  Press Ctrl+C to stop the servers                                          ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-{Colors.ENDC}\n")
+{Colors.ENDC}"""
+    print(f"\n{shutdown_box}\n")
 
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully"""
