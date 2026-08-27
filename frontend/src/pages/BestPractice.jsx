@@ -6,18 +6,85 @@ const SEV_COLOR = { Critical: "#ef4444", High: "#f97316", Medium: "#eab308", Low
 const BP_COLOR = { 1: "#4a90e2", 2: "#06b6d4", 3: "#10b981", 4: "#8b5cf6", 5: "#f59e0b" };
 const BP_ICON = { 1: "🧠", 2: "🔗", 3: "🛡️", 4: "👥", 5: "⚙️" };
 
+// There is no /api/practices endpoint on the backend yet, so this static
+// guide content is the only source for these descriptions today. Kept as a
+// fallback (rather than the sole source) so a future /api/practices route
+// can override it without any frontend changes.
+const FALLBACK_PRACTICES = [
+  {
+    id: 1,
+    title: "Threat Intelligence",
+    summary: "Correlate cloud activity against known adversary tradecraft instead of reacting to isolated alerts.",
+    key_insight: "Attackers reuse the same cloud-specific techniques across campaigns — recognizing the pattern early cuts detection time dramatically.",
+    what_without: "Analysts see a stream of disconnected, low-context alerts and can't tell a real intrusion from noise until damage is already done.",
+    what_with: "Alerts are enriched with adversary context, so the SOC recognizes a known attack pattern in progress and responds before it escalates.",
+  },
+  {
+    id: 2,
+    title: "Control Plane Context",
+    summary: "Understand identity, permissions, and configuration changes — the cloud control plane is the new perimeter.",
+    key_insight: "Most cloud breaches involve control-plane misuse (IAM, roles, policies) rather than traditional malware on a host.",
+    what_without: "A privilege escalation via a misconfigured IAM policy looks like routine admin activity and goes unnoticed for days or weeks.",
+    what_with: "Every permission and policy change is tracked with context, so an unauthorized privilege escalation is flagged the moment it happens.",
+  },
+  {
+    id: 3,
+    title: "Runtime Protection",
+    summary: "Monitor workloads (containers, serverless, VMs) as they execute, not just their static configuration.",
+    key_insight: "Fileless and in-memory techniques evade traditional scanning because there's no file ever written to disk.",
+    what_without: "A reverse shell spawned inside a container runs silently — nothing on disk ever gets scanned, so nothing gets caught.",
+    what_with: "Runtime behavior is monitored directly, so anomalous process activity inside a container or function is caught as it happens.",
+  },
+  {
+    id: 4,
+    title: "Cloud Expertise",
+    summary: "Cloud-native attacks require analysts fluent in cloud services, not just traditional network/endpoint security.",
+    key_insight: "A login from an unusual region or an unfamiliar API call pattern only looks suspicious to someone who knows what 'normal' looks like for that cloud environment.",
+    what_without: "An analyst without cloud-specific training dismisses an impossible-travel login alert as a false positive.",
+    what_with: "Cloud-fluent analysts recognize subtle deviations from normal cloud usage and investigate them before they become a breach.",
+  },
+  {
+    id: 5,
+    title: "Automate Response",
+    summary: "Machine-speed attacks need machine-speed containment — manual response can't keep pace in the cloud.",
+    key_insight: "Cloud resources (compute, storage, credentials) can be created, escalated, and abused within minutes, far faster than a human-driven response process.",
+    what_without: "By the time an analyst manually revokes a compromised credential, the attacker has already pivoted to other resources.",
+    what_with: "Automated playbooks isolate compromised resources and revoke credentials within seconds of detection, containing the blast radius.",
+  },
+];
+
 export default function BestPractice({ id }) {
   const [practice, setPractice] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [usingFallback, setUsingFallback] = useState(false);
   const [simResult, setSimResult] = useState(null);
   const [simLoading, setSimLoading] = useState(false);
   const [step, setStep] = useState("idle"); // idle | running | done
 
   useEffect(() => {
-    fetch(`${API}/practices`).then(r => r.json()).then(data => {
-      setPractice(data.find(p => p.id === id));
-    }).catch(() => {});
+    let cancelled = false;
+    setLoading(true);
+
+    fetch(`${API}/practices`)
+      .then(r => {
+        if (!r.ok) throw new Error(`Request failed with status ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        setPractice(data.find(p => p.id === id));
+        setUsingFallback(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPractice(FALLBACK_PRACTICES.find(p => p.id === id));
+        setUsingFallback(true);
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
     setSimResult(null);
     setStep("idle");
+    return () => { cancelled = true; };
   }, [id]);
 
   const runSim = async () => {
@@ -35,12 +102,22 @@ export default function BestPractice({ id }) {
     setSimLoading(false);
   };
 
-  if (!practice) return <div style={{ color: "#64748b", padding: 40 }}>Loading...</div>;
+  if (loading) return <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>⏳ Loading best practice...</div>;
+  if (!practice) return <div style={{ color: "#64748b", padding: 40 }}>Practice not found.</div>;
 
   const color = BP_COLOR[id];
 
   return (
     <div>
+      {usingFallback && (
+        <div style={{
+          background: "#eab30811", border: "1px solid #eab30844", borderRadius: 8,
+          padding: "10px 16px", marginBottom: 20, fontSize: 12, color: "#eab308",
+        }}>
+          ⚠ Backend unavailable — showing built-in guide content (attack simulation below still requires the backend).
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 11, color, letterSpacing: 3, marginBottom: 8 }}>

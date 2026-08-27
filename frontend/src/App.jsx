@@ -5,6 +5,8 @@ import WhyCloud from "./pages/WhyCloud";
 import BestPractice from "./pages/BestPractice";
 import Alerts from "./pages/Alerts";
 import Logs from "./pages/Logs";
+import Timeline from "./pages/Timeline";
+import Mitre from "./pages/Mitre";
 import Prowler from "./pages/Prowler";
 
 export default function App() {
@@ -23,6 +25,8 @@ export default function App() {
       case "best-practice": return <BestPractice id={bpId} />;
       case "alerts": return <Alerts />;
       case "logs": return <Logs />;
+      case "timeline": return <Timeline />;
+      case "mitre": return <Mitre />;
       case "prowler": return <Prowler />;
       default: return <Home navigate={navigate} />;
     }

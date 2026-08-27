@@ -10,6 +10,8 @@ const NAV = [
   { label: "─────────────────────", disabled: true },
   { label: "Live Alerts", page: "alerts", icon: "🚨" },
   { label: "Cloud Logs", page: "logs", icon: "📜" },
+  { label: "Timeline", page: "timeline", icon: "🕒" },
+  { label: "MITRE ATT&CK", page: "mitre", icon: "🧩" },
   { label: "Prowler Findings", page: "prowler", icon: "☂️" },
 ];
 
@@ -46,7 +48,8 @@ export default function Sidebar({ page, bpId, navigate }) {
               width: "100%", padding: "10px 20px",
               background: isActive ? "#1a2744" : "transparent",
               borderLeft: isActive ? "3px solid #4a90e2" : "3px solid transparent",
-              border: "none", color: isActive ? "#e2e8f0" : "#94a3b8",
+              borderTop: "none", borderRight: "none", borderBottom: "none",
+              color: isActive ? "#e2e8f0" : "#94a3b8",
               fontSize: 13, cursor: "pointer", textAlign: "left",
               transition: "all 0.15s",
             }}>
