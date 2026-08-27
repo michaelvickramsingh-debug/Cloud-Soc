@@ -64,6 +64,26 @@ cloudguard/
 
 ---
 
+## 🔴 LIVE LOG INGESTION
+
+CloudGuard now supports **real-time log streaming from AWS CloudTrail** with automatic threat detection. See [LIVE_LOG_INGESTION_GUIDE.md](LIVE_LOG_INGESTION_GUIDE.md) for complete setup.
+
+### Quick Features:
+- **WebSocket Streaming**: Real-time logs appear in the dashboard as they occur
+- **Threat Detection**: Automatic analysis against 15+ security rules
+- **Alert Broadcast**: Critical/High severity events trigger instant alerts
+- **Lambda Integration**: Serverless log parsing from CloudTrail S3 bucket
+- **Batch Processing**: Efficient handling of large log volumes (100 logs/batch)
+- **Live Dashboard**: "Go Live" button on Logs page enables real-time view
+
+### Architecture:
+```
+CloudTrail S3 → Lambda Function → Backend /api/logs/ingest → 
+Threat Detection → WebSocket Broadcast → Frontend Real-time UI
+```
+
+---
+
 ## 🚀 HOW TO RUN
 
 ### 🎯 Quick Start (Recommended) — One Click!
@@ -107,6 +127,8 @@ Frontend: **http://127.0.0.1:3000**
 | GET | `/api/stats` | Dashboard summary numbers |
 | GET | `/api/logs` | All cloud logs |
 | GET | `/api/logs/timeline/<scenario_id>` | Log timeline for a scenario |
+| POST | `/api/logs/ingest` | Ingest CloudTrail logs from Lambda |
+| GET | `/api/logs/stream/status` | WebSocket streaming status |
 | GET | `/api/alerts` | All alerts |
 | GET | `/api/alerts/summary` | Alert count by severity |
 | PUT | `/api/alerts/<id>/resolve` | Resolve an alert |
@@ -117,6 +139,7 @@ Frontend: **http://127.0.0.1:3000**
 | POST | `/api/reset` | Reset logs & alerts to a clean state |
 | POST | `/api/prowler/ingest` | Ingest a Prowler scan result |
 | GET | `/api/prowler/summary` | Summary of ingested Prowler findings |
+| WebSocket | `/logs` | Real-time log and alert streaming
 
 ---
 
