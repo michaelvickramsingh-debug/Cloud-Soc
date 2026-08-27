@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Commit and push CloudGuard",
+			"type": "shell",
+			"command": "cd /Users/micvic/code/CloudSoc/Cloud-Soc && git add -A && git status --short && git commit -m \"Consolidate CloudGuard frontend and backend\" && git push origin main",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

@@ -5,6 +5,7 @@ import WhyCloud from "./pages/WhyCloud";
 import BestPractice from "./pages/BestPractice";
 import Alerts from "./pages/Alerts";
 import Logs from "./pages/Logs";
+import Prowler from "./pages/Prowler";
 
 export default function App() {
   const [page, setPage] = useState("home");
@@ -22,6 +23,7 @@ export default function App() {
       case "best-practice": return <BestPractice id={bpId} />;
       case "alerts": return <Alerts />;
       case "logs": return <Logs />;
+      case "prowler": return <Prowler />;
       default: return <Home navigate={navigate} />;
     }
   };

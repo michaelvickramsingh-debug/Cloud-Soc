@@ -10,6 +10,7 @@ const NAV = [
   { label: "─────────────────────", disabled: true },
   { label: "Live Alerts", page: "alerts", icon: "🚨" },
   { label: "Cloud Logs", page: "logs", icon: "📜" },
+  { label: "Prowler Findings", page: "prowler", icon: "☂️" },
 ];
 
 export default function Sidebar({ page, bpId, navigate }) {

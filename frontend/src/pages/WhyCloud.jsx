@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 
 const WHITEPAPER_STATS = [
   { value: "26%", label: "Increase in cloud intrusions in 2024", source: "CrowdStrike 2025 Global Threat Report", color: "#ef4444" },

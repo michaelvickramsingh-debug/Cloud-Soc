@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 
 const SEV_COLOR = { Critical: "#ef4444", High: "#f97316", Medium: "#eab308", Low: "#22c55e" };
 const BP_COLOR = { 1: "#4a90e2", 2: "#06b6d4", 3: "#10b981", 4: "#8b5cf6", 5: "#f59e0b" };
