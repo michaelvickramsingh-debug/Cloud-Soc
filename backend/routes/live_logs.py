@@ -19,6 +19,67 @@ def init_socketio(socket_instance):
     global socketio
     socketio = socket_instance
 
+    # Register WebSocket event handlers after socketio is initialized
+    @socketio.on('connect', namespace='/logs')
+    def handle_connect():
+        """Handle WebSocket connection"""
+        logger.info(f'Client connected to /logs: {request.sid}')
+        emit('connected', {'message': 'Connected to log stream'})
+
+    @socketio.on('disconnect', namespace='/logs')
+    def handle_disconnect():
+        """Handle WebSocket disconnection"""
+        logger.info(f'Client disconnected from /logs: {request.sid}')
+
+    @socketio.on('subscribe', namespace='/logs')
+    def handle_subscribe(data):
+        """
+        Subscribe to log stream with optional filters
+
+        Data format:
+        {
+            "filters": {
+                "severity": "High",      # Optional
+                "source": "s3",          # Optional
+                "event": "GetObject",    # Optional
+                "user": "alice"          # Optional
+            }
+        }
+        """
+        try:
+            filters = data.get('filters', {}) if data else {}
+            join_room(f"logs_stream_{request.sid}")
+
+            emit('subscribed', {
+                'status': 'subscribed',
+                'filters': filters,
+                'message': 'Now receiving live logs'
+            })
+
+            logger.info(f'Client {request.sid} subscribed with filters: {filters}')
+
+        except Exception as e:
+            logger.error(f"Error handling subscribe: {str(e)}")
+            emit('error', {'message': str(e)})
+
+    @socketio.on('unsubscribe', namespace='/logs')
+    def handle_unsubscribe():
+        """Unsubscribe from log stream"""
+        leave_room(f"logs_stream_{request.sid}")
+        emit('unsubscribed', {'status': 'unsubscribed'})
+
+    @socketio.on('filter_update', namespace='/logs')
+    def handle_filter_update(data):
+        """Update filters for log stream"""
+        try:
+            filters = data.get('filters', {})
+            logger.info(f'Client {request.sid} updated filters: {filters}')
+            emit('filter_updated', {'filters': filters})
+
+        except Exception as e:
+            logger.error(f"Error updating filters: {str(e)}")
+            emit('error', {'message': str(e)})
+
 
 # ================== REST Endpoints ==================
 
@@ -51,7 +112,7 @@ def ingest_logs():
 
         # Broadcast to connected WebSocket clients
         if socketio:
-            socketio.emit('ingestion_complete', stats, broadcast=True, namespace='/logs')
+            socketio.emit('ingestion_complete', stats, namespace='/logs', broadcast=True)
 
         return jsonify({
             'status': 'ok',
@@ -73,73 +134,6 @@ def stream_status():
     }), 200
 
 
-# ================== WebSocket Events ==================
-
-@socketio.on('connect', namespace='/logs')
-def handle_connect():
-    """Handle WebSocket connection"""
-    logger.info(f'Client connected to /logs: {request.sid}')
-    emit('connected', {'message': 'Connected to log stream'})
-
-
-@socketio.on('disconnect', namespace='/logs')
-def handle_disconnect():
-    """Handle WebSocket disconnection"""
-    logger.info(f'Client disconnected from /logs: {request.sid}')
-
-
-@socketio.on('subscribe', namespace='/logs')
-def handle_subscribe(data):
-    """
-    Subscribe to log stream with optional filters
-
-    Data format:
-    {
-        "filters": {
-            "severity": "High",      # Optional
-            "source": "s3",          # Optional
-            "event": "GetObject",    # Optional
-            "user": "alice"          # Optional
-        }
-    }
-    """
-    try:
-        filters = data.get('filters', {}) if data else {}
-        join_room(f"logs_stream_{request.sid}")
-
-        emit('subscribed', {
-            'status': 'subscribed',
-            'filters': filters,
-            'message': 'Now receiving live logs'
-        })
-
-        logger.info(f'Client {request.sid} subscribed with filters: {filters}')
-
-    except Exception as e:
-        logger.error(f"Error handling subscribe: {str(e)}")
-        emit('error', {'message': str(e)})
-
-
-@socketio.on('unsubscribe', namespace='/logs')
-def handle_unsubscribe():
-    """Unsubscribe from log stream"""
-    leave_room(f"logs_stream_{request.sid}")
-    emit('unsubscribed', {'status': 'unsubscribed'})
-
-
-@socketio.on('filter_update', namespace='/logs')
-def handle_filter_update(data):
-    """Update filters for log stream"""
-    try:
-        filters = data.get('filters', {})
-        logger.info(f'Client {request.sid} updated filters: {filters}')
-        emit('filter_updated', {'filters': filters})
-
-    except Exception as e:
-        logger.error(f"Error updating filters: {str(e)}")
-        emit('error', {'message': str(e)})
-
-
 def broadcast_new_logs(logs):
     """
     Broadcast new logs to all connected WebSocket clients
@@ -149,7 +143,7 @@ def broadcast_new_logs(logs):
         socketio.emit('new_logs', {
             'logs': logs,
             'timestamp': __import__('datetime').datetime.utcnow().isoformat()
-        }, broadcast=True, namespace='/logs')
+        }, namespace='/logs', broadcast=True)
 
 
 def broadcast_new_alert(alert):
@@ -158,4 +152,4 @@ def broadcast_new_alert(alert):
     Called when threat is detected
     """
     if socketio:
-        socketio.emit('new_alert', alert, broadcast=True, namespace='/logs')
+        socketio.emit('new_alert', alert, namespace='/logs', broadcast=True)
