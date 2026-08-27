@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (production-ready replacement for SQLite)
+  postgres:
+    image: postgres:15-alpine
+    container_name: cloudguard-db
+    environment:
+      POSTGRES_DB: cloudguard
+      POSTGRES_USER: cloudguard_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cloudguard_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudguard_user -d cloudguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cloudguard-network
+
+  # Flask Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cloudguard-backend
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "True"
+      PORT: 5001
+      DB_TYPE: postgresql  # Switch to PostgreSQL
+      DATABASE_URL: postgresql://cloudguard_user:${DB_PASSWORD:-cloudguard_dev_password}@postgres:5432/cloudguard
+    ports:
+      - "5001:5001"
+    volumes:
+      # Hot-reload for development (remove for production)
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cloudguard-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cloudguard-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:5001/api
+    ports:
+      - "3000:3000"
+    volumes:
+      # Hot-reload for development (remove for production)
+      - ./frontend/src:/app/src
+    depends_on:
+      - backend
+    networks:
+      - cloudguard-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: cloudguard-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@cloudguard.local
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - cloudguard-network
+    profiles: ["dev"]  # Only run with: docker-compose --profile dev up
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  cloudguard-network:
+    driver: bridge
