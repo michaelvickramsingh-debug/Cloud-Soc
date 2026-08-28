@@ -1,7 +1,5 @@
 # AWS Lab Setup Checklist
-
 ## Phase 1: Foundation Setup ✅ (START HERE)
-
 ### 1.1 Prerequisites
 - [ ] AWS Account created with billing enabled
 - [ ] AWS CLI installed (`aws --version`)

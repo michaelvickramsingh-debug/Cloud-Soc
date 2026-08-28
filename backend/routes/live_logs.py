@@ -112,7 +112,7 @@ def ingest_logs():
 
         # Broadcast to connected WebSocket clients
         if socketio:
-            socketio.emit('ingestion_complete', stats, namespace='/logs', broadcast=True)
+            socketio.emit('ingestion_complete', stats, to=None, namespace='/logs')
 
         return jsonify({
             'status': 'ok',
@@ -143,7 +143,7 @@ def broadcast_new_logs(logs):
         socketio.emit('new_logs', {
             'logs': logs,
             'timestamp': __import__('datetime').datetime.utcnow().isoformat()
-        }, namespace='/logs', broadcast=True)
+        }, to=None, namespace='/logs')
 
 
 def broadcast_new_alert(alert):
@@ -152,4 +152,4 @@ def broadcast_new_alert(alert):
     Called when threat is detected
     """
     if socketio:
-        socketio.emit('new_alert', alert, namespace='/logs', broadcast=True)
+        socketio.emit('new_alert', alert, to=None, namespace='/logs')
