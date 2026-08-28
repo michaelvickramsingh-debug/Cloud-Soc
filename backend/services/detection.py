@@ -239,7 +239,7 @@ def detect_threat_from_log(log_dict: dict) -> tuple:
     max_severity = None
     reasons = []
 
-    action = log_dict.get('event', '').lower()
+    action = (log_dict.get('event') or log_dict.get('action') or '').lower()
 
     for rule in ALL_RULES:
         if rule['keyword'] in action:

@@ -41,25 +41,29 @@ class LogIngestionService:
             try:
                 # Parse log entry
                 log_record = parse_log(log_entry, source)
+                logger.info(f"Parsed log: {log_record.get('event')}")
 
                 # Run threat detection
                 severity, reasons = detect_threat_from_log(log_record)
+                logger.info(f"Threat detection: severity={severity}, reasons={reasons}")
 
                 # Create alert if threat detected
                 if severity:
                     alert = create_alert(log_record, severity, reasons)
                     broadcast_new_alert(alert)
                     stats['alerts'] += 1
+                    logger.info(f"Alert created: {alert['title']}")
 
                 # Save log to database
                 log_id = save_log(log_record)
+                logger.info(f"Log saved with ID: {log_id}")
                 if log_id:
                     log_record['id'] = log_id
                     processed_logs.append(log_record)
                     stats['processed'] += 1
 
             except Exception as e:
-                logger.error(f"Error processing log: {str(e)}")
+                logger.error(f"Error processing log: {str(e)}", exc_info=True)
                 stats['errors'] += 1
                 continue
 
@@ -85,24 +89,24 @@ def parse_log(log_entry, source):
 
 
 def parse_cloudtrail_log(entry):
-    """Parse CloudTrail log entry"""
+    """Parse CloudTrail log entry (handles both full and simplified formats)"""
     user_identity = entry.get('userIdentity', {})
     request_params = entry.get('requestParameters', {})
 
     return {
-        'timestamp': entry.get('eventTime'),
-        'user': user_identity.get('userName', 'unknown'),
+        'timestamp': entry.get('eventTime') or entry.get('timestamp'),
+        'user': user_identity.get('userName') or entry.get('user', 'unknown'),
         'user_type': user_identity.get('type', 'unknown'),
         'principal_id': user_identity.get('principalId'),
-        'event': entry.get('eventName'),
-        'source': entry.get('eventSource'),
-        'ip': entry.get('sourceIPAddress'),
-        'region': entry.get('awsRegion'),
+        'event': entry.get('eventName') or entry.get('event'),
+        'source': entry.get('eventSource') or entry.get('source'),
+        'ip': entry.get('sourceIPAddress') or entry.get('ip'),
+        'region': entry.get('awsRegion') or entry.get('region'),
         'user_agent': entry.get('userAgent'),
         'status': 'success' if entry.get('errorCode') is None else 'error',
         'error_code': entry.get('errorCode'),
         'error_message': entry.get('errorMessage'),
-        'resource': request_params.get('bucketName') or 'unknown',
+        'resource': request_params.get('bucketName') or entry.get('resource') or 'unknown',
         'raw': json.dumps(entry),
         'source_type': 'cloudtrail'
     }
