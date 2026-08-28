@@ -153,6 +153,7 @@ def save_log(log_record):
     """Save log to database"""
     from database.database import get_db
 
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -178,10 +179,10 @@ def save_log(log_record):
 
         conn.commit()
         log_id = cursor.lastrowid
-        logger.info(f"Log saved to database with ID: {log_id}")
+        logger.info(f"✓ Log saved with ID: {log_id}")
         return log_id
     except Exception as e:
-        logger.error(f"Error saving log: {str(e)}", exc_info=True)
+        logger.error(f"✗ Error saving log: {str(e)}", exc_info=True)
         return None
     finally:
         if conn:
@@ -193,40 +194,40 @@ def create_alert(log_record, severity, reasons):
     from database.database import get_db
 
     alert = {
-        'title': f"{severity} severity event: {log_record.get('event')}",
-        'description': ' | '.join(reasons),
+        'type': 'IOA',
         'severity': severity,
-        'user': log_record.get('user'),
-        'event': log_record.get('event'),
-        'source': log_record.get('source'),
-        'ip': log_record.get('ip'),
-        'timestamp': datetime.utcnow().isoformat(),
+        'title': f"{severity} severity: {log_record.get('event')}",
+        'description': ' | '.join(reasons) if reasons else 'Threat detected',
+        'timestamp': log_record.get('timestamp') or __import__('datetime').datetime.utcnow().isoformat(),
         'status': 'Open',
-        'related_log_id': None
     }
 
     # Save to database
-    conn = get_db()
-    cursor = conn.cursor()
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
 
-    cursor.execute('''
-        INSERT INTO alerts (
-            title, description, severity, user, event, source,
-            ip, timestamp, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        alert['title'],
-        alert['description'],
-        alert['severity'],
-        alert['user'],
-        alert['event'],
-        alert['source'],
-        alert['ip'],
-        alert['timestamp'],
-        alert['status']
-    ))
+        cursor.execute('''
+            INSERT INTO alerts (
+                type, severity, title, description, timestamp, status
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            alert['type'],
+            alert['severity'],
+            alert['title'],
+            alert['description'],
+            alert['timestamp'],
+            alert['status']
+        ))
 
-    conn.commit()
-    alert['id'] = cursor.lastrowid
-
-    return alert
+        conn.commit()
+        alert['id'] = cursor.lastrowid
+        logger.info(f"✓ Alert created with ID: {alert['id']}")
+        return alert
+    except Exception as e:
+        logger.error(f"✗ Error creating alert: {str(e)}", exc_info=True)
+        return None
+    finally:
+        if conn:
+            conn.close()
