@@ -16,14 +16,30 @@
 cloudguard/
 ├── backend/
 │   ├── app.py                  ← Flask entry point (run this)
-│   ├── database.py             ← SQLite setup & init
+│   ├── config.py               ← Central config, loaded from .env
 │   ├── requirements.txt        ← Python dependencies
-│   ├── engine/
-│   │   └── simulation.py       ← Log generator + IOA/IOM detection engine
+│   ├── conftest.py             ← pytest path setup
+│   ├── database/
+│   │   ├── database.py         ← Connection, init_db(), reset_db()
+│   │   └── schema.sql          ← Table definitions + seed data
+│   ├── models/
+│   │   ├── alert.py            ← Alert record shape
+│   │   └── log.py              ← Log record shape
 │   ├── routes/
-│   │   └── api.py              ← All REST API endpoints
-│   └── data/
-│       └── cloudguard.db       ← SQLite DB (auto-created on first run)
+│   │   ├── api.py              ← Registers all blueprints under /api
+│   │   ├── alerts.py
+│   │   ├── logs.py
+│   │   ├── stats.py
+│   │   └── prowler.py
+│   ├── services/
+│   │   ├── detection.py        ← IOA/IOM detection rules
+│   │   ├── simulation.py       ← Log generator / attack scenarios
+│   │   └── prowler.py          ← Prowler scan ingestion
+│   ├── utils/
+│   │   ├── helpers.py
+│   │   └── logger.py
+│   ├── tests/                  ← pytest suite
+│   └── data/                   ← Runtime output (e.g. prowler_output.json)
 │
 └── frontend/
     ├── index.html
@@ -35,12 +51,15 @@ cloudguard/
         ├── components/
         │   └── layout/
         │       └── Sidebar.jsx ← Navigation sidebar
+        ├── utils/
+        │   └── api.js          ← Shared fetch helper
         └── pages/
             ├── Home.jsx        ← Overview dashboard + stats
             ├── WhyCloud.jsx    ← Section 1: Attack surface + stats
             ├── BestPractice.jsx← Section 2: BP explainer + simulator
             ├── Alerts.jsx      ← Live alerts with filters + resolve
-            └── Logs.jsx        ← Cloud log viewer with search
+            ├── Logs.jsx        ← Cloud log viewer with search
+            └── Prowler.jsx     ← Prowler scan results view
 ```
 
 ---
@@ -71,13 +90,17 @@ Frontend runs at: **http://localhost:3000**
 |--------|----------|-------------|
 | GET | `/api/stats` | Dashboard summary numbers |
 | GET | `/api/logs` | All cloud logs |
+| GET | `/api/logs/timeline/<scenario_id>` | Log timeline for a scenario |
 | GET | `/api/alerts` | All alerts |
 | GET | `/api/alerts/summary` | Alert count by severity |
 | PUT | `/api/alerts/<id>/resolve` | Resolve an alert |
 | GET | `/api/scenarios` | All 5 attack scenarios |
 | POST | `/api/simulate/<id>` | Run attack simulation (1–5) |
-| GET | `/api/layers` | Cloud attack layers data |
-| GET | `/api/practices` | Best practices content |
+| GET | `/api/metrics` | Aggregate detection metrics |
+| GET | `/api/mitre` | MITRE ATT&CK mapping |
+| POST | `/api/reset` | Reset logs & alerts to a clean state |
+| POST | `/api/prowler/ingest` | Ingest a Prowler scan result |
+| GET | `/api/prowler/summary` | Summary of ingested Prowler findings |
 
 ---
 
