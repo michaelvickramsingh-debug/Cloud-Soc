@@ -153,30 +153,39 @@ def save_log(log_record):
     """Save log to database"""
     from database.database import get_db
 
-    conn = get_db()
-    cursor = conn.cursor()
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
 
-    cursor.execute('''
-        INSERT INTO logs (
-            timestamp, user, event, source, ip, region,
-            user_agent, status, error_code, resource, raw_data
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        log_record.get('timestamp'),
-        log_record.get('user'),
-        log_record.get('event'),
-        log_record.get('source'),
-        log_record.get('ip'),
-        log_record.get('region'),
-        log_record.get('user_agent'),
-        log_record.get('status'),
-        log_record.get('error_code'),
-        log_record.get('resource'),
-        log_record.get('raw')
-    ))
+        cursor.execute('''
+            INSERT INTO logs (
+                timestamp, user, event, source, ip, region,
+                user_agent, status, error_code, resource, raw_data
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            log_record.get('timestamp'),
+            log_record.get('user'),
+            log_record.get('event'),
+            log_record.get('source'),
+            log_record.get('ip'),
+            log_record.get('region'),
+            log_record.get('user_agent'),
+            log_record.get('status'),
+            log_record.get('error_code'),
+            log_record.get('resource'),
+            log_record.get('raw')
+        ))
 
-    conn.commit()
-    return cursor.lastrowid
+        conn.commit()
+        log_id = cursor.lastrowid
+        logger.info(f"Log saved to database with ID: {log_id}")
+        return log_id
+    except Exception as e:
+        logger.error(f"Error saving log: {str(e)}", exc_info=True)
+        return None
+    finally:
+        if conn:
+            conn.close()
 
 
 def create_alert(log_record, severity, reasons):
