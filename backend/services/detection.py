@@ -126,6 +126,42 @@ IOA_RULES = [
         "severity": "Critical",
         "type":     "IOA",
     },
+    {
+        "keyword":  "putuserpolicy",
+        "title":    "IAM Policy Modified - Privilege Escalation Risk",
+        "severity": "Critical",
+        "type":     "IOA",
+    },
+    {
+        "keyword":  "createaccesskey",
+        "title":    "New Access Key Created",
+        "severity": "High",
+        "type":     "IOA",
+    },
+    {
+        "keyword":  "attachuserpolicy",
+        "title":    "IAM Policy Attached to User",
+        "severity": "High",
+        "type":     "IOA",
+    },
+    {
+        "keyword":  "deletetrail",
+        "title":    "CloudTrail Trail Deleted",
+        "severity": "Critical",
+        "type":     "IOA",
+    },
+    {
+        "keyword":  "putbucketpolicy",
+        "title":    "S3 Bucket Policy Modified",
+        "severity": "High",
+        "type":     "IOA",
+    },
+    {
+        "keyword":  "getobject",
+        "title":    "S3 Object Access Detected",
+        "severity": "Medium",
+        "type":     "IOA",
+    },
 ]
 
 # ── IOM RULES ─────────────────────────────────────────────────────────────────
