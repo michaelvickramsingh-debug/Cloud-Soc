@@ -21,15 +21,58 @@ logs_bp  = Blueprint("logs", __name__)
 @logs_bp.route("/logs")
 def get_logs():
     """
-    Return up to 200 log entries, newest first.
+    Return up to 200 log entries from both cloud_logs (simulations) and logs (live), newest first.
     Frontend: Logs.jsx viewer
     """
     conn = get_db()
-    rows = conn.execute(
-        "SELECT * FROM cloud_logs ORDER BY timestamp DESC LIMIT 200"
+
+    # Get cloud_logs (simulated)
+    cloud_rows = conn.execute(
+        "SELECT id, timestamp, user, action as event, source_ip as ip, region, cloud_service as source, severity FROM cloud_logs ORDER BY timestamp DESC LIMIT 100"
     ).fetchall()
+
+    # Get live logs
+    live_rows = conn.execute(
+        "SELECT id, timestamp, user, event, ip, region, source, status FROM logs ORDER BY timestamp DESC LIMIT 100"
+    ).fetchall()
+
     conn.close()
-    return jsonify([Log.from_row(r).to_dict() for r in rows])
+
+    # Convert both to dicts
+    logs_list = []
+
+    # Add cloud_logs (simulated)
+    for r in cloud_rows:
+        logs_list.append({
+            'id': r[0],
+            'timestamp': r[1],
+            'user': r[2],
+            'event': r[3],
+            'ip': r[4],
+            'region': r[5],
+            'source': r[6],
+            'severity': r[7] or 'Low',
+            'type': 'simulated'
+        })
+
+    # Add live logs
+    for r in live_rows:
+        logs_list.append({
+            'id': r[0],
+            'timestamp': r[1],
+            'user': r[2],
+            'event': r[3],
+            'ip': r[4],
+            'region': r[5],
+            'source': r[6],
+            'status': r[7],
+            'severity': 'Medium',
+            'type': 'live'
+        })
+
+    # Sort by timestamp descending and return top 200
+    logs_list.sort(key=lambda x: x['timestamp'], reverse=True)
+    return jsonify(logs_list[:200])
 
 
 @logs_bp.route("/logs/timeline/<int:scenario_id>")

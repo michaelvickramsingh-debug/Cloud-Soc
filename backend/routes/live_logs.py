@@ -139,11 +139,13 @@ def broadcast_new_logs(logs):
     Broadcast new logs to all connected WebSocket clients
     Called by log ingestion service
     """
-    if socketio:
+    if socketio and logs:
+        import datetime
         socketio.emit('new_logs', {
             'logs': logs,
-            'timestamp': __import__('datetime').datetime.utcnow().isoformat()
-        }, to=None, namespace='/logs')
+            'timestamp': datetime.datetime.utcnow().isoformat()
+        }, namespace='/logs', skip_sid=None)
+        logger.info(f"Broadcasted {len(logs)} logs to WebSocket clients")
 
 
 def broadcast_new_alert(alert):
@@ -151,5 +153,6 @@ def broadcast_new_alert(alert):
     Broadcast new alert to all connected WebSocket clients
     Called when threat is detected
     """
-    if socketio:
-        socketio.emit('new_alert', alert, to=None, namespace='/logs')
+    if socketio and alert:
+        socketio.emit('new_alert', alert, namespace='/logs', skip_sid=None)
+        logger.info(f"Broadcasted alert: {alert.get('title', 'Unknown')}")
