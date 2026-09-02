@@ -15,7 +15,7 @@
 CREATE TABLE IF NOT EXISTS cloud_logs (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp       TEXT    NOT NULL,
-    user            TEXT    NOT NULL,
+    "user"          TEXT    NOT NULL,
     action          TEXT    NOT NULL,
     source_ip       TEXT,
     region          TEXT,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS cloud_logs (
 CREATE TABLE IF NOT EXISTS logs (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp       TEXT    NOT NULL,
-    user            TEXT,
+    "user"          TEXT,
     event           TEXT,
     source          TEXT,
     ip              TEXT,

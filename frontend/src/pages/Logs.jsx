@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 
-const API = "http://localhost:5001/api";
-const SOCKET_URL = "http://localhost:5001";
+const API = import.meta.env.VITE_API_URL || "/api";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 const SEV_COLOR = { Critical: "#ef4444", High: "#f97316", Medium: "#eab308", Low: "#22c55e" };
 
 export default function Logs() {

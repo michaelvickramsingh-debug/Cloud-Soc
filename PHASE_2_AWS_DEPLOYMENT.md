@@ -268,16 +268,11 @@ aws s3api put-bucket-notification-configuration \
 ### Step 1: Package Lambda Function
 
 ```bash
-cd backend/lambda
-
-# Install dependencies
-pip install -r requirements.txt -t .
-
-# Create deployment package
-zip -r deployment.zip . -x "*.git*" "__pycache__/*" "*.pyc"
+./backend/lambda/build_deployment_package.sh
 
 # Upload to S3
-aws s3 cp deployment.zip s3://$BUCKET_NAME/lambda/deployment.zip
+aws s3 cp lambda/deployment.zip s3://$BUCKET_NAME/lambda/deployment.zip \
+  --region $AWS_REGION
 ```
 
 ### Step 2: Create Lambda Function
@@ -295,8 +290,7 @@ aws lambda create-function \
   --handler parse_cloudtrail.lambda_handler \
   --timeout 60 \
   --memory-size 512 \
-  --s3-bucket $BUCKET_NAME \
-  --s3-key lambda/deployment.zip \
+  --code S3Bucket=$BUCKET_NAME,S3Key=lambda/deployment.zip \
   --environment "Variables={CLOUDGUARD_API=https://YOUR_BACKEND_URL/api/logs/ingest}" \
   --region $AWS_REGION
 ```

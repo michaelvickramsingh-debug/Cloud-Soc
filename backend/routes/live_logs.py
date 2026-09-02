@@ -3,10 +3,13 @@ backend/routes/live_logs.py
 Real-time log ingestion and WebSocket streaming
 """
 
+import hmac
+
 from flask import Blueprint, request, jsonify
 from flask_socketio import emit, join_room, leave_room
 import logging
 import json
+from config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +101,14 @@ def ingest_logs():
     try:
         # Import here to avoid circular imports
         from services.log_ingestion import LogIngestionService
+
+        if not Config.INGEST_API_KEY:
+            logger.error("INGEST_API_KEY is not configured")
+            return jsonify({'error': 'Ingestion endpoint is not configured'}), 503
+
+        provided_api_key = request.headers.get('X-CloudGuard-API-Key', '')
+        if not hmac.compare_digest(provided_api_key, Config.INGEST_API_KEY):
+            return jsonify({'error': 'Unauthorized'}), 401
 
         data = request.get_json()
 

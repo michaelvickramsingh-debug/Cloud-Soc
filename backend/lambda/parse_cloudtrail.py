@@ -4,26 +4,66 @@ Triggered by S3 events when CloudTrail logs arrive
 Sends parsed logs to CloudGuard backend for processing
 """
 
-import json
-import boto3
-import requests
 import gzip
 import io
+import json
 import logging
+import os
 from datetime import datetime
-from urllib.parse import quote
+from urllib.parse import unquote_plus, urlparse
+from urllib.request import Request, urlopen
 
 # Setup logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# AWS clients
-s3 = boto3.client('s3')
-
 # Configuration
-CLOUDGUARD_API = 'http://backend:5001/api/logs/ingest'  # Update with your backend URL
 BATCH_SIZE = 100
 TIMEOUT = 30
+
+
+def get_s3_client():
+    """Create the S3 client only when the Lambda processes an event."""
+    import boto3
+
+    return boto3.client('s3')
+
+
+def get_secrets_manager_client():
+    """Create the Secrets Manager client only when it is needed."""
+    import boto3
+
+    return boto3.client('secretsmanager')
+
+
+def get_cloudguard_api():
+    """Return the explicitly configured backend ingestion endpoint."""
+    api_url = os.environ.get('CLOUDGUARD_API')
+    parsed_url = urlparse(api_url) if api_url else None
+    if not parsed_url or parsed_url.scheme != 'https' or not parsed_url.netloc:
+        raise RuntimeError(
+            'CLOUDGUARD_API must be an absolute HTTPS /api/logs/ingest endpoint'
+        )
+    return api_url
+
+
+def get_ingest_headers():
+    """Return the required authentication header for the ingestion endpoint."""
+    api_key = os.environ.get('CLOUDGUARD_API_KEY')
+    if not api_key:
+        secret_arn = os.environ.get('CLOUDGUARD_API_KEY_SECRET_ARN')
+        if secret_arn:
+            api_key = get_secrets_manager_client().get_secret_value(
+                SecretId=secret_arn
+            )['SecretString']
+    if not api_key:
+        raise RuntimeError(
+            'CLOUDGUARD_API_KEY or CLOUDGUARD_API_KEY_SECRET_ARN must be configured'
+        )
+    return {
+        'Content-Type': 'application/json',
+        'X-CloudGuard-API-Key': api_key,
+    }
 
 
 def lambda_handler(event, context):
@@ -31,51 +71,33 @@ def lambda_handler(event, context):
     Main Lambda handler
     Triggered by S3:ObjectCreated events for CloudTrail logs
     """
-    try:
-        logger.info(f"Received event: {json.dumps(event)}")
+    logger.info("Received %d S3 record(s)", len(event.get('Records', [])))
+    get_cloudguard_api()
+    get_ingest_headers()
+    processed_count = 0
 
-        processed_count = 0
-        failed_count = 0
+    for record in event.get('Records', []):
+        bucket = record['s3']['bucket']['name']
+        key = unquote_plus(record['s3']['object']['key'])
+        logger.info("Processing s3://%s/%s", bucket, key)
 
-        # Process each S3 record
-        for record in event.get('Records', []):
-            try:
-                bucket = record['s3']['bucket']['name']
-                key = record['s3']['object']['key']
+        logs = download_and_parse_logs(bucket, key)
+        if not logs:
+            logger.warning("No logs found in %s", key)
+            continue
 
-                logger.info(f"Processing s3://{bucket}/{key}")
+        count = send_logs_to_backend(logs)
+        processed_count += count
+        logger.info("Sent %d logs to CloudGuard", count)
 
-                # Download and decompress CloudTrail log
-                logs = download_and_parse_logs(bucket, key)
-
-                if logs:
-                    # Send to CloudGuard backend in batches
-                    count = send_logs_to_backend(logs)
-                    processed_count += count
-                    logger.info(f"Sent {count} logs to CloudGuard")
-                else:
-                    logger.warning(f"No logs found in {key}")
-
-            except Exception as e:
-                failed_count += 1
-                logger.error(f"Error processing record: {str(e)}", exc_info=True)
-                continue
-
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'message': 'CloudTrail logs processed',
-                'processed': processed_count,
-                'failed': failed_count
-            })
-        }
-
-    except Exception as e:
-        logger.error(f"Fatal error in Lambda handler: {str(e)}", exc_info=True)
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
-        }
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'CloudTrail logs processed',
+            'processed': processed_count,
+            'failed': 0
+        })
+    }
 
 
 def download_and_parse_logs(bucket, key):
@@ -83,25 +105,16 @@ def download_and_parse_logs(bucket, key):
     Download CloudTrail log from S3 and decompress
     CloudTrail logs are gzipped JSON files
     """
-    try:
-        logger.info(f"Downloading s3://{bucket}/{key}")
+    logger.info("Downloading s3://%s/%s", bucket, key)
+    response = get_s3_client().get_object(Bucket=bucket, Key=key)
 
-        # Get object from S3
-        response = s3.get_object(Bucket=bucket, Key=key)
+    with gzip.GzipFile(fileobj=io.BytesIO(response['Body'].read())) as gzipfile:
+        content = gzipfile.read().decode('utf-8')
+        data = json.loads(content)
 
-        # Decompress gzip
-        with gzip.GzipFile(fileobj=io.BytesIO(response['Body'].read())) as gzipfile:
-            content = gzipfile.read().decode('utf-8')
-            data = json.loads(content)
-
-        logs = data.get('Records', [])
-        logger.info(f"Parsed {len(logs)} events from CloudTrail log")
-
-        return logs
-
-    except Exception as e:
-        logger.error(f"Error downloading/parsing logs: {str(e)}")
-        raise
+    logs = data.get('Records', [])
+    logger.info("Parsed %d events from CloudTrail log", len(logs))
+    return logs
 
 
 def send_logs_to_backend(logs):
@@ -122,28 +135,20 @@ def send_logs_to_backend(logs):
             'total_batches': (len(logs) + BATCH_SIZE - 1) // BATCH_SIZE
         }
 
-        try:
-            logger.info(f"Sending batch {i//BATCH_SIZE + 1}: {len(batch)} logs")
+        logger.info("Sending batch %d: %d logs", i // BATCH_SIZE + 1, len(batch))
+        request = Request(
+            get_cloudguard_api(),
+            data=json.dumps(payload).encode('utf-8'),
+            headers=get_ingest_headers(),
+            method='POST',
+        )
 
-            response = requests.post(
-                CLOUDGUARD_API,
-                json=payload,
-                timeout=TIMEOUT,
-                headers={'Content-Type': 'application/json'}
-            )
+        with urlopen(request, timeout=TIMEOUT) as response:
+            result = json.loads(response.read().decode('utf-8'))
 
-            if response.status_code == 200:
-                result = response.json()
-                sent = result.get('count', len(batch))
-                total_sent += sent
-                logger.info(f"Successfully sent {sent} logs")
-            else:
-                logger.error(f"Backend returned status {response.status_code}: {response.text}")
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error sending logs to backend: {str(e)}")
-            # Continue with next batch instead of failing completely
-            continue
+        sent = result.get('count', len(batch))
+        total_sent += sent
+        logger.info("Successfully sent %d logs", sent)
 
     return total_sent
 

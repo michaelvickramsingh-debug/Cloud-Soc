@@ -23,10 +23,10 @@ from routes.api        import api
 from routes.live_logs  import live_logs_bp, init_socketio
 
 app = Flask(__name__)
-CORS(app)  # Allow requests from React frontend on localhost:3000
+CORS(app, origins=Config.CORS_ALLOWED_ORIGINS)
 
 # Initialize WebSocket support for real-time log streaming
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins=Config.CORS_ALLOWED_ORIGINS)
 init_socketio(socketio)
 
 # Register all routes under /api

@@ -160,9 +160,10 @@ def save_log(log_record):
 
         cursor.execute('''
             INSERT INTO logs (
-                timestamp, user, event, source, ip, region,
+                timestamp, "user", event, source, ip, region,
                 user_agent, status, error_code, resource, raw_data
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING id
         ''', (
             log_record.get('timestamp'),
             log_record.get('user'),
@@ -178,7 +179,7 @@ def save_log(log_record):
         ))
 
         conn.commit()
-        log_id = cursor.lastrowid
+        log_id = cursor.fetchone()[0]
         logger.info(f"✓ Log saved with ID: {log_id}")
         return log_id
     except Exception as e:
@@ -212,6 +213,7 @@ def create_alert(log_record, severity, reasons):
             INSERT INTO alerts (
                 type, severity, title, description, timestamp, status
             ) VALUES (?, ?, ?, ?, ?, ?)
+            RETURNING id
         ''', (
             alert['type'],
             alert['severity'],
@@ -222,7 +224,7 @@ def create_alert(log_record, severity, reasons):
         ))
 
         conn.commit()
-        alert['id'] = cursor.lastrowid
+        alert['id'] = cursor.fetchone()[0]
         logger.info(f"✓ Alert created with ID: {alert['id']}")
         return alert
     except Exception as e:

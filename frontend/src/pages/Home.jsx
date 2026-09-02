@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:5001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 const STATS_META = [
   { key: "critical", label: "Critical Alerts", color: "#ef4444", icon: "🔴" },

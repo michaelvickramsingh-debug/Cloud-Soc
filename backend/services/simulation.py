@@ -295,7 +295,7 @@ def run_simulation(scenario_id: int) -> dict:
     for log in all_logs:
         c.execute(
             """INSERT INTO cloud_logs
-               (timestamp, user, action, source_ip, region,
+               (timestamp, "user", action, source_ip, region,
                 cloud_service, severity, is_malicious, scenario_id,
                 mitre_technique, mitre_tactic)
                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",

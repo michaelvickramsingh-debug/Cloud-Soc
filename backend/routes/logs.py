@@ -28,12 +28,12 @@ def get_logs():
 
     # Get cloud_logs (simulated)
     cloud_rows = conn.execute(
-        "SELECT id, timestamp, user, action as event, source_ip as ip, region, cloud_service as source, severity FROM cloud_logs ORDER BY timestamp DESC LIMIT 100"
+        'SELECT id, timestamp, "user", action as event, source_ip as ip, region, cloud_service as source, severity FROM cloud_logs ORDER BY timestamp DESC LIMIT 100'
     ).fetchall()
 
     # Get live logs
     live_rows = conn.execute(
-        "SELECT id, timestamp, user, event, ip, region, source, status FROM logs ORDER BY timestamp DESC LIMIT 100"
+        'SELECT id, timestamp, "user", event, ip, region, source, status FROM logs ORDER BY timestamp DESC LIMIT 100'
     ).fetchall()
 
     conn.close()
