@@ -6,9 +6,24 @@ Integration tests for end-to-end log ingestion and streaming
 import pytest
 import json
 from datetime import datetime
+from database.database import init_db, reset_db
 from services.log_ingestion import LogIngestionService, parse_cloudtrail_log
 from services.detection import detect_threat_from_log
 from routes.live_logs import broadcast_new_logs, broadcast_new_alert
+
+
+@pytest.fixture(autouse=True)
+def fresh_db():
+    """Start every test with a clean, schema-initialised database.
+
+    Without this, tests that exercise LogIngestionService (which reads and
+    writes the alerts/cloud_logs tables) fail with "no such table" because
+    nothing else in this file ever calls init_db().
+    """
+    init_db()
+    reset_db()
+    yield
+    reset_db()
 
 
 class TestLogParsing:

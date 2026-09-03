@@ -29,7 +29,12 @@ export default function Logs() {
 
     const socket = io(SOCKET_URL, {
       path: "/socket.io",
-      transports: ["websocket", "polling"],
+      // Try HTTP long-polling first: API Gateway HTTP API + VPC Link to the
+      // internal ALB does not support raw WebSocket upgrades, so listing
+      // "websocket" first would loop on failed handshakes. Polling works
+      // through any standard HTTP proxy, and the client still opportunistically
+      // attempts to upgrade to a real WebSocket when the path supports it.
+      transports: ["polling", "websocket"],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,

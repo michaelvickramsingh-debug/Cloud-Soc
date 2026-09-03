@@ -69,19 +69,33 @@ def get_metrics():
     open_alerts     = c.execute("SELECT COUNT(*) FROM alerts WHERE status='Open'").fetchone()[0]
     resolved_alerts = c.execute("SELECT COUNT(*) FROM alerts WHERE status='Resolved'").fetchone()[0]
 
-    # Per-scenario breakdown
+    # Per-scenario breakdown.
+    # cloud_logs and alerts are aggregated in separate subqueries before
+    # joining to attack_scenarios — joining both child tables directly would
+    # fan-out (a scenario with N logs and M alerts produces N*M matched rows),
+    # silently inflating SUM(l.is_malicious) and even driving benign_logs
+    # negative once a scenario has more than one alert.
     rows = c.execute(
         """SELECT
                s.id,
                s.name,
-               COUNT(DISTINCT l.id)         AS total_logs,
-               SUM(l.is_malicious)          AS malicious_logs,
-               COUNT(DISTINCT l.id) - SUM(l.is_malicious) AS benign_logs,
-               COUNT(DISTINCT a.id)         AS alert_count
+               COALESCE(log_stats.total_logs, 0)     AS total_logs,
+               COALESCE(log_stats.malicious_logs, 0)  AS malicious_logs,
+               COALESCE(log_stats.total_logs, 0) - COALESCE(log_stats.malicious_logs, 0) AS benign_logs,
+               COALESCE(alert_stats.alert_count, 0)   AS alert_count
            FROM attack_scenarios s
-           LEFT JOIN cloud_logs l ON l.scenario_id = s.id
-           LEFT JOIN alerts     a ON a.best_practice = s.id
-           GROUP BY s.id
+           LEFT JOIN (
+               SELECT scenario_id,
+                      COUNT(*)         AS total_logs,
+                      SUM(is_malicious) AS malicious_logs
+               FROM cloud_logs
+               GROUP BY scenario_id
+           ) log_stats ON log_stats.scenario_id = s.id
+           LEFT JOIN (
+               SELECT best_practice, COUNT(*) AS alert_count
+               FROM alerts
+               GROUP BY best_practice
+           ) alert_stats ON alert_stats.best_practice = s.id
            ORDER BY s.id"""
     ).fetchall()
     conn.close()

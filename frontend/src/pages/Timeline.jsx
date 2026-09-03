@@ -19,15 +19,25 @@ const MOCK_EVENTS = [
 ];
 
 function mapLogsToEvents(logs) {
-  return logs.map(l => ({
-    id: l.id,
-    timestamp: l.timestamp,
-    eventType: l.mitre_tactic || (l.is_malicious ? "Suspicious Activity" : "Benign Activity"),
-    severity: l.is_malicious ? (l.severity || "Medium") : "Info",
-    source: [l.cloud_service, l.region].filter(Boolean).join(" · ") || l.user || "Unknown source",
-    description: l.user ? `${l.action} — by ${l.user}` : l.action,
-    isMalicious: !!l.is_malicious,
-  }));
+  // /api/logs (routes/logs.py) normalizes both simulated and live rows to
+  // { id, timestamp, user, event, ip, region, source, severity, type }.
+  // It never returns action, cloud_service, is_malicious, or mitre_tactic —
+  // referencing those left every row showing "undefined — by unknown" and
+  // stuck on the Info/Benign fallback regardless of actual severity.
+  return logs.map(l => {
+    const severity = l.severity || "Info";
+    return {
+      id: l.id,
+      timestamp: l.timestamp,
+      eventType: l.type === "simulated" ? "Simulated Attack" : "Live CloudTrail Activity",
+      severity,
+      source: [l.source, l.region].filter(Boolean).join(" · ") || l.user || "Unknown source",
+      description: l.event
+        ? (l.user ? `${l.event} — by ${l.user}` : l.event)
+        : "Unknown event",
+      isMalicious: ["Critical", "High"].includes(severity),
+    };
+  });
 }
 
 export default function Timeline() {
