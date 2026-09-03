@@ -103,6 +103,11 @@ def init_db():
     conn = get_db()
     if Config.DB_TYPE == "postgresql":
         conn.cursor().execute(schema_sql)
+        migration_path = os.path.join(
+            os.path.dirname(__file__), "migrations.postgresql.sql"
+        )
+        with open(migration_path, "r") as f:
+            conn.cursor().execute(f.read())
     else:
         conn.executescript(schema_sql)
 
@@ -111,7 +116,10 @@ def init_db():
 
     conn.commit()
     conn.close()
-    logger.info("Database initialised at %s", Config.DB_PATH)
+    if Config.DB_TYPE == "postgresql":
+        logger.info("PostgreSQL database initialised")
+    else:
+        logger.info("SQLite database initialised at %s", Config.DB_PATH)
 
 
 def reset_db():
@@ -122,6 +130,7 @@ def reset_db():
     """
     conn = get_db()
     conn.execute("DELETE FROM alerts")
+    conn.execute("DELETE FROM logs")
     conn.execute("DELETE FROM cloud_logs")
     conn.commit()
     conn.close()
@@ -179,7 +188,10 @@ def _seed_scenarios(conn: sqlite3.Connection):
         ),
     ]
     conn.cursor().executemany(
-        """INSERT INTO attack_scenarios VALUES (?,?,?,?,?,?,?)
+        """INSERT INTO attack_scenarios (
+               id, name, description, attack_vector, layer_targeted,
+               best_practice_violated, mitre_tactics
+           ) VALUES (?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT (id) DO NOTHING""",
         scenarios,
     )

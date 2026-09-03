@@ -66,17 +66,39 @@ def get_ingest_headers():
     }
 
 
+def get_s3_records(event):
+    """Normalize direct S3 and EventBridge S3 Object Created events."""
+    records = event.get('Records')
+    if records is not None:
+        return records
+
+    if event.get('source') == 'aws.s3' and event.get('detail-type') == 'Object Created':
+        detail = event.get('detail', {})
+        bucket = detail.get('bucket', {}).get('name')
+        key = detail.get('object', {}).get('key')
+        if bucket and key:
+            return [{
+                's3': {
+                    'bucket': {'name': bucket},
+                    'object': {'key': key},
+                }
+            }]
+
+    raise ValueError('Expected an S3 Object Created event')
+
+
 def lambda_handler(event, context):
     """
     Main Lambda handler
     Triggered by S3:ObjectCreated events for CloudTrail logs
     """
-    logger.info("Received %d S3 record(s)", len(event.get('Records', [])))
+    records = get_s3_records(event)
+    logger.info("Received %d S3 record(s)", len(records))
     get_cloudguard_api()
     get_ingest_headers()
     processed_count = 0
 
-    for record in event.get('Records', []):
+    for record in records:
         bucket = record['s3']['bucket']['name']
         key = unquote_plus(record['s3']['object']['key'])
         logger.info("Processing s3://%s/%s", bucket, key)

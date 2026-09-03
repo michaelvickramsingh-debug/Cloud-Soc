@@ -73,6 +73,42 @@ class LambdaParserTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "CLOUDGUARD_API"):
             parse_cloudtrail.lambda_handler({"Records": []}, None)
 
+    def test_lambda_handler_accepts_eventbridge_s3_event(self):
+        captured = {}
+        original_download = parse_cloudtrail.download_and_parse_logs
+        original_send = parse_cloudtrail.send_logs_to_backend
+
+        def download_logs(bucket, key):
+            captured["location"] = (bucket, key)
+            return [{"eventName": "GetObject"}]
+
+        parse_cloudtrail.download_and_parse_logs = download_logs
+        parse_cloudtrail.send_logs_to_backend = lambda logs: len(logs)
+        self.addCleanup(
+            setattr, parse_cloudtrail, "download_and_parse_logs", original_download
+        )
+        self.addCleanup(
+            setattr, parse_cloudtrail, "send_logs_to_backend", original_send
+        )
+
+        result = parse_cloudtrail.lambda_handler(
+            {
+                "source": "aws.s3",
+                "detail-type": "Object Created",
+                "detail": {
+                    "bucket": {"name": "cloudtrail-logs"},
+                    "object": {"key": "AWSLogs/account/CloudTrail/log.json.gz"},
+                },
+            },
+            None,
+        )
+
+        self.assertEqual(
+            captured["location"],
+            ("cloudtrail-logs", "AWSLogs/account/CloudTrail/log.json.gz"),
+        )
+        self.assertEqual(json.loads(result["body"])["processed"], 1)
+
     def test_ingest_headers_load_api_key_from_secrets_manager(self):
         parse_cloudtrail.os.environ.pop("CLOUDGUARD_API_KEY")
         parse_cloudtrail.os.environ["CLOUDGUARD_API_KEY_SECRET_ARN"] = (

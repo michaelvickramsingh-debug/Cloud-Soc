@@ -31,8 +31,12 @@ def get_stats():
     conn = get_db()
     c    = conn.cursor()
 
+    simulated_logs = c.execute("SELECT COUNT(*) FROM cloud_logs").fetchone()[0]
+    live_logs = c.execute("SELECT COUNT(*) FROM logs").fetchone()[0]
+
     data = {
-        "total_logs":     c.execute("SELECT COUNT(*) FROM cloud_logs").fetchone()[0],
+        "total_logs":     simulated_logs + live_logs,
+        "live_logs":      live_logs,
         "total_alerts":   c.execute("SELECT COUNT(*) FROM alerts").fetchone()[0],
         "critical":       c.execute("SELECT COUNT(*) FROM alerts WHERE severity='Critical'").fetchone()[0],
         "high":           c.execute("SELECT COUNT(*) FROM alerts WHERE severity='High'").fetchone()[0],
