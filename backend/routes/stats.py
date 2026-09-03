@@ -134,14 +134,13 @@ def get_mitre():
                s.name            AS scenario_name,
                l.mitre_tactic,
                l.mitre_technique,
-               l.action,
                COUNT(*)          AS occurrences
            FROM cloud_logs l
            JOIN attack_scenarios s ON s.id = l.scenario_id
            WHERE l.is_malicious    = 1
              AND l.mitre_technique != ''
-           GROUP BY l.scenario_id, l.mitre_technique
-           ORDER BY l.scenario_id, l.mitre_tactic"""
+           GROUP BY l.scenario_id, s.name, l.mitre_tactic, l.mitre_technique
+           ORDER BY l.scenario_id, l.mitre_tactic, l.mitre_technique"""
     ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
