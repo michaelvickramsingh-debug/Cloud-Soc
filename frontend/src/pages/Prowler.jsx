@@ -77,33 +77,52 @@ export default function Prowler() {
   const [findings, setFindings] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState(null);
+  const [scanLog, setScanLog] = useState(null);
+  const [showScanLog, setShowScanLog] = useState(false);
   const [error, setError] = useState(null);
   const [usingMock, setUsingMock] = useState(false);
   const [severityFilter, setSeverityFilter] = useState("All");
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadData = () => {
     setLoading(true);
     setError(null);
 
     Promise.all([fetchJson("/prowler/summary"), fetchJson("/alerts")])
       .then(([summaryData, alerts]) => {
-        if (cancelled) return;
         setSummary(summaryData);
         setFindings(mapAlertsToFindings(alerts));
         setUsingMock(false);
       })
       .catch(err => {
-        if (cancelled) return;
         setError(err.message);
         setSummary(MOCK_SUMMARY);
         setFindings(MOCK_FINDINGS);
         setUsingMock(true);
       })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .finally(() => setLoading(false));
+  };
 
-    return () => { cancelled = true; };
-  }, []);
+  useEffect(() => { loadData(); }, []);
+
+  const runScan = async () => {
+    setScanning(true);
+    setScanMessage("Running Prowler scan against AWS account...");
+    setScanLog(null);
+    setError(null);
+    try {
+      const res = await fetchJson("/prowler/scan", { method: "POST" });
+      setScanMessage(`Scan complete — ${res.ingestion.ingested} findings ingested.`);
+      setScanLog(res.scan_log || null);
+      loadData();
+    } catch (err) {
+      setScanMessage(null);
+      setError(`Scan failed: ${err.message}`);
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const filtered = findings.filter(f => severityFilter === "All" || f.severity === severityFilter);
 
@@ -119,10 +138,61 @@ export default function Prowler() {
     <div>
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 11, color: "#4a90e2", letterSpacing: 3, marginBottom: 8 }}>CLOUD SECURITY POSTURE</div>
-        <h2 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: 0 }}>☂️ Prowler Findings</h2>
-        <p style={{ color: "#64748b", marginTop: 8 }}>
-          Misconfiguration findings from Prowler CSPM scans and the detection engine. Run <code>POST /api/prowler/ingest</code> against a real Prowler output file to populate this with live AWS posture data.
-        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h2 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: 0 }}>☂️ Prowler Findings</h2>
+            <p style={{ color: "#64748b", marginTop: 8 }}>
+              Misconfiguration findings from Prowler CSPM scans. Click the button to run a live scan and ingest results.
+            </p>
+          </div>
+          <button
+            onClick={runScan}
+            disabled={scanning}
+            style={{
+              padding: "10px 20px", borderRadius: 8, border: "none", cursor: scanning ? "wait" : "pointer",
+              background: scanning ? "#1e2d45" : "#4a90e2", color: "white", fontSize: 13, fontWeight: 700,
+            }}
+          >
+            {scanning ? "🔍 Scanning AWS..." : "🔍 Run Prowler Scan"}
+          </button>
+        </div>
+        {scanMessage && (
+          <div style={{ marginTop: 12, fontSize: 13, color: scanning ? "#eab308" : "#22c55e" }}>
+            {scanning ? "⏳" : "✅"} {scanMessage}
+            {scanLog && (
+              <button
+                onClick={() => setShowScanLog(!showScanLog)}
+                style={{
+                  marginLeft: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid #334155",
+                  background: "transparent", color: "#94a3b8", fontSize: 11, cursor: "pointer",
+                }}
+              >
+                {showScanLog ? "Hide scan log" : "Show scan log"}
+              </button>
+            )}
+          </div>
+        )}
+        {showScanLog && scanLog && (
+          <div style={{
+            marginTop: 12, background: "#050a14", border: "1px solid #1e2d45", borderRadius: 8,
+            padding: 16, maxHeight: 300, overflow: "auto",
+          }}>
+            <div style={{ fontSize: 11, color: "#475569", marginBottom: 8 }}>
+              Last scan: {scanLog.started_at} → {scanLog.finished_at} (exit {scanLog.exit_code})
+            </div>
+            <pre style={{ fontSize: 11, color: "#22c55e", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+              {scanLog.stdout || "(no stdout captured)"}
+            </pre>
+            {scanLog.stderr && (
+              <>
+                <div style={{ fontSize: 11, color: "#ef4444", marginTop: 10, marginBottom: 4 }}>stderr:</div>
+                <pre style={{ fontSize: 11, color: "#ef4444", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                  {scanLog.stderr}
+                </pre>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {usingMock && (
@@ -180,7 +250,7 @@ export default function Prowler() {
             <div style={{ textAlign: "center", padding: 60, color: "#334155" }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>☂️</div>
               <div style={{ fontSize: 16, fontWeight: 600 }}>No Prowler findings yet</div>
-              <div style={{ fontSize: 13, marginTop: 8 }}>Ingest a Prowler scan via <code>POST /api/prowler/ingest</code> to populate findings.</div>
+              <div style={{ fontSize: 13, marginTop: 8 }}>Click "Run Prowler Scan" above to scan your AWS account and populate findings.</div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

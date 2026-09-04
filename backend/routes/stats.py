@@ -155,6 +155,58 @@ def get_scenarios():
     return jsonify([dict(r) for r in rows])
 
 
+@stats_bp.route("/practices")
+def get_practices():
+    """Return the Best Practice guide content used by the frontend.
+
+    The UI expects this endpoint to exist so the simulation page can stay
+    in live mode even when the backend is deployed separately from the
+    frontend build.
+    """
+    return jsonify([
+        {
+            "id": 1,
+            "title": "Threat Intelligence",
+            "summary": "Correlate cloud activity against known adversary tradecraft instead of reacting to isolated alerts.",
+            "key_insight": "Attackers reuse the same cloud-specific techniques across campaigns — recognizing the pattern early cuts detection time dramatically.",
+            "what_without": "Analysts see a stream of disconnected, low-context alerts and can't tell a real intrusion from noise until damage is already done.",
+            "what_with": "Alerts are enriched with adversary context, so the SOC recognizes a known attack pattern in progress and responds before it escalates.",
+        },
+        {
+            "id": 2,
+            "title": "Control Plane Context",
+            "summary": "Understand identity, permissions, and configuration changes — the cloud control plane is the new perimeter.",
+            "key_insight": "Most cloud breaches involve control-plane misuse (IAM, roles, policies) rather than traditional malware on a host.",
+            "what_without": "A privilege escalation via a misconfigured IAM policy looks like routine admin activity and goes unnoticed for days or weeks.",
+            "what_with": "Every permission and policy change is tracked with context, so an unauthorized privilege escalation is flagged the moment it happens.",
+        },
+        {
+            "id": 3,
+            "title": "Runtime Protection",
+            "summary": "Monitor workloads (containers, serverless, VMs) as they execute, not just their static configuration.",
+            "key_insight": "Fileless and in-memory techniques evade traditional scanning because there's no file ever written to disk.",
+            "what_without": "A reverse shell spawned inside a container runs silently — nothing on disk ever gets scanned, so nothing gets caught.",
+            "what_with": "Runtime behavior is monitored directly, so anomalous process activity inside a container or function is caught as it happens.",
+        },
+        {
+            "id": 4,
+            "title": "Cloud Expertise",
+            "summary": "Cloud-native attacks require analysts fluent in cloud services, not just traditional network/endpoint security.",
+            "key_insight": "A login from an unusual region or an unfamiliar API call pattern only looks suspicious to someone who knows what 'normal' looks like for that cloud environment.",
+            "what_without": "An analyst without cloud-specific training dismisses an impossible-travel login alert as a false positive.",
+            "what_with": "Cloud-fluent analysts recognize subtle deviations from normal cloud usage and investigate them before they become a breach.",
+        },
+        {
+            "id": 5,
+            "title": "Automate Response",
+            "summary": "Machine-speed attacks need machine-speed containment — manual response can't keep pace in the cloud.",
+            "key_insight": "Cloud resources (compute, storage, credentials) can be created, escalated, and abused within minutes, far faster than a human-driven response process.",
+            "what_without": "By the time an analyst manually revokes a compromised credential, the attacker has already pivoted to other resources.",
+            "what_with": "Automated playbooks isolate compromised resources and revoke credentials within seconds of detection, containing the blast radius.",
+        },
+    ])
+
+
 @stats_bp.route("/simulate/<int:scenario_id>", methods=["POST"])
 def simulate(scenario_id: int):
     """

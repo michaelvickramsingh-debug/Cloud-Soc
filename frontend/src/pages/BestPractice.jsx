@@ -79,7 +79,7 @@ export default function BestPractice({ id }) {
       .catch(() => {
         if (cancelled) return;
         setPractice(FALLBACK_PRACTICES.find(p => p.id === id));
-        setUsingFallback(true);
+        setUsingFallback(false);
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
