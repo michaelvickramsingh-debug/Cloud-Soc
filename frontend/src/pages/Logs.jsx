@@ -1,8 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 
-const API = import.meta.env.VITE_API_URL || "/api";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+const LIVE_AWS_API_URL = "https://4d6spw8ar6.execute-api.us-east-1.amazonaws.com/api";
+const LIVE_AWS_SOCKET_URL = "https://4d6spw8ar6.execute-api.us-east-1.amazonaws.com";
+
+const API = import.meta.env.VITE_API_URL || LIVE_AWS_API_URL;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || LIVE_AWS_SOCKET_URL;
 const SEV_COLOR = { Critical: "#ef4444", High: "#f97316", Medium: "#eab308", Low: "#22c55e" };
 
 export default function Logs() {

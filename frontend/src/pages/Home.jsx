@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
-const API = import.meta.env.VITE_API_URL || "/api";
+const LIVE_AWS_API_URL = "https://4d6spw8ar6.execute-api.us-east-1.amazonaws.com/api";
+const API = import.meta.env.VITE_API_URL || LIVE_AWS_API_URL;
 
 const STATS_META = [
   { key: "critical", label: "Critical Alerts", color: "#ef4444", icon: "🔴" },

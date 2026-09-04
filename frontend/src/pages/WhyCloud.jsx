@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
-const API = import.meta.env.VITE_API_URL || "/api";
+const LIVE_AWS_API_URL = "https://4d6spw8ar6.execute-api.us-east-1.amazonaws.com/api";
+const API = import.meta.env.VITE_API_URL || LIVE_AWS_API_URL;
 
 const WHITEPAPER_STATS = [
   { value: "26%", label: "Increase in cloud intrusions in 2024", source: "CrowdStrike 2025 Global Threat Report", color: "#ef4444" },

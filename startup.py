@@ -30,6 +30,8 @@ FRONTEND_DIR = PROJECT_ROOT / "frontend"
 # Ports
 BACKEND_PORT = 5001
 FRONTEND_PORT = 3000
+LIVE_AWS_API_URL = "https://4d6spw8ar6.execute-api.us-east-1.amazonaws.com/api"
+START_LOCAL_BACKEND = "--local-backend" in sys.argv
 
 # Colors for terminal output
 class Colors:
@@ -98,7 +100,7 @@ def start_backend():
 
 def start_frontend():
     """Start Vite frontend server"""
-    print(f"{Colors.BLUE}⚙️  Starting Frontend (React/Vite)...{Colors.ENDC}")
+    print(f"{Colors.BLUE}⚙️  Starting Frontend (React/Vite) in AWS live mode...{Colors.ENDC}")
 
     frontend_log = open("/tmp/cloudguard_frontend.log", "w")
 
@@ -123,21 +125,23 @@ def verify_services():
 
     import urllib.request
 
-    # Check backend
-    try:
-        response = urllib.request.urlopen(f"http://127.0.0.1:{BACKEND_PORT}/api/stats", timeout=3)
-        print(f"{Colors.GREEN}   ✓ Backend responding{Colors.ENDC}")
-    except Exception as e:
-        print(f"{Colors.RED}   ✗ Backend not responding: {e}{Colors.ENDC}")
-        return False
+    if START_LOCAL_BACKEND:
+        try:
+            response = urllib.request.urlopen(f"http://127.0.0.1:{BACKEND_PORT}/api/stats", timeout=3)
+            print(f"{Colors.GREEN}   ✓ Backend responding{Colors.ENDC}")
+        except Exception as e:
+            print(f"{Colors.RED}   ✗ Backend not responding: {e}{Colors.ENDC}")
+            return False
 
-    # Check frontend
     try:
         response = urllib.request.urlopen(f"http://127.0.0.1:{FRONTEND_PORT}", timeout=3)
         print(f"{Colors.GREEN}   ✓ Frontend responding{Colors.ENDC}\n")
     except Exception as e:
         print(f"{Colors.RED}   ✗ Frontend not responding: {e}{Colors.ENDC}")
         return False
+
+    if not START_LOCAL_BACKEND:
+        print(f"{Colors.CYAN}   ✓ AWS live mode enabled: {LIVE_AWS_API_URL}{Colors.ENDC}\n")
 
     return True
 
@@ -165,8 +169,12 @@ def print_status():
     print(f"{Colors.GREEN}📊 Dashboard:{Colors.ENDC}")
     print(f"   {Colors.BOLD}http://127.0.0.1:{FRONTEND_PORT}{Colors.ENDC}")
 
-    print(f"\n{Colors.GREEN}⚙️  Backend API:{Colors.ENDC}")
-    print(f"   {Colors.BOLD}http://127.0.0.1:{BACKEND_PORT}/api{Colors.ENDC}")
+    if START_LOCAL_BACKEND:
+        print(f"\n{Colors.GREEN}⚙️  Backend API:{Colors.ENDC}")
+        print(f"   {Colors.BOLD}http://127.0.0.1:{BACKEND_PORT}/api{Colors.ENDC}")
+    else:
+        print(f"\n{Colors.GREEN}☁️  AWS Live Backend:{Colors.ENDC}")
+        print(f"   {Colors.BOLD}{LIVE_AWS_API_URL}{Colors.ENDC}")
 
     print(f"\n{Colors.GREEN}📁 Project Root:{Colors.ENDC}")
     print(f"   {Colors.BOLD}{PROJECT_ROOT}{Colors.ENDC}")
@@ -205,8 +213,11 @@ def main():
     cleanup_processes()
 
     # Start services
-    if not start_backend():
-        sys.exit(1)
+    if START_LOCAL_BACKEND:
+        if not start_backend():
+            sys.exit(1)
+    else:
+        print(f"{Colors.CYAN}☁️  AWS live mode is enabled by default. Use --local-backend to switch to local backend mode.{Colors.ENDC}\n")
 
     if not start_frontend():
         sys.exit(1)

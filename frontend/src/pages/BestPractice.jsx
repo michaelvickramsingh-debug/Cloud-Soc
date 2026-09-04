@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
-const API = import.meta.env.VITE_API_URL || "/api";
+const LIVE_AWS_API_URL = "https://4d6spw8ar6.execute-api.us-east-1.amazonaws.com/api";
+const API = import.meta.env.VITE_API_URL || LIVE_AWS_API_URL;
 
 const SEV_COLOR = { Critical: "#ef4444", High: "#f97316", Medium: "#eab308", Low: "#22c55e" };
 const BP_COLOR = { 1: "#4a90e2", 2: "#06b6d4", 3: "#10b981", 4: "#8b5cf6", 5: "#f59e0b" };
